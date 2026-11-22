@@ -1,0 +1,97 @@
+==================================================
+Lab 3: File Path Traversal, Traversal Sequences Stripped Non-Recursively
+==================================================
+
+=======================
+WHAT THIS LAB IS ABOUT
+=======================
+
+A shopping website loads product images through a URL that includes the filename.
+The server removes ../ from the filename, but it removes it only once.
+We can hide a second ../ inside the first, so one removal leaves a working traversal sequence behind.
+
+Goal: read the contents of /etc/passwd.
+
+==============================
+HOW THE WEBSITE NORMALLY WORKS
+==============================
+
+When a product image loads, the browser requests /image?filename=<name>.
+The server reads the file from its image folder, /var/www/images/, and returns it.
+
+=======================
+ WHAT IS THE PROBLEM
+=======================
+
+The filter runs a single pass over the input. It finds each ../ and deletes it, then stops.
+Deleting a sequence can join the characters on either side, and those joined characters can form a new ../ that the filter never checks.
+
+===========================
+THREE THINGS TO UNDERSTAND
+===========================
+
+Traversal sequence (../): This moves up one folder. The filter tries to remove it.
+Single-pass filter: It removes matches once, without checking the result again.
+Joined characters: When ../ is removed from ....//, the two dots on each side join together, creating a new ../.
+
+======================================
+THE ATTACK
+======================================
+
+Instead of a normal traversal sequence, we send:
+
+....//....//....//etc/passwd
+
+The filter removes the inner ../ from each ....// group. Each group loses its middle ../, and the remaining characters join into a new ../.
+
+....//  becomes  ../
+
+So the value the server uses is:
+
+../../../etc/passwd
+
+The three ../ move up from /var/www/images/ to /, and the path then reaches /etc/passwd.
+
+============================
+HOW TO SOLVE IT MANUALLY
+============================
+
+Open the lab and load any product image.
+Replace the filename in the image URL with ....//....//....//etc/passwd.
+Load the page. The text of /etc/passwd appears, and the lab is marked as solved.
+
+=========================
+WHAT THIS SCRIPT DOES
+=========================
+
+* It asks for the lab's base URL and builds the target as /image.
+* It sends a GET request with filename set to ....//....//....//etc/passwd. The params argument adds it to the URL query string.
+* If the server returns status 200, it prints the response text, which is the contents of /etc/passwd.
+* If the request fails or the status is different, it prints an error instead.
+
+=============================
+WHY THIS HAPPENS
+=============================
+
+The filter checks the input once and assumes that removing a pattern cannot create a new one.
+It can, because removing text can bring together characters that were not next to each other before.
+
+=============================
+HOW TO PREVENT THIS
+=============================
+
+Do not build file paths from user input. Map each image to an ID or a fixed name on the server.
+If user input must be used, resolve the full path and check that it still starts with the allowed folder.
+Do not rely on removing bad patterns. Reject the input when it contains any traversal sequence, and repeat the check until nothing changes if you must strip.
+
+Other good practices:
+
+Run the web server with only the file permissions it needs.
+Keep sensitive files outside the paths the application can reach.
+
+=============================
+ KEY POINTS TO REMEMBER
+=============================
+Removing a pattern once can create the same pattern again.
+Checking the resolved path is safer than filtering the raw input.
+Never trust a filename that comes from the user.
