@@ -1,0 +1,95 @@
+==================================================
+Lab 2: File Path Traversal, Traversal Sequences Blocked
+==================================================
+
+=======================
+WHAT THIS LAB IS ABOUT
+=======================
+
+A shopping website loads product images through a URL that includes the filename.
+The server has a filter that blocks ../ sequences, so the simple payload from Lab 7 no longer works.
+The filter only looks for ../, so an absolute path that starts from the root folder avoids it.
+
+Goal: read the contents of /etc/passwd.
+
+==============================
+HOW THE WEBSITE NORMALLY WORKS
+==============================
+
+When a product image loads, the browser requests /image?filename=<name>.
+The server reads the file from its image folder, /var/www/images/, and returns it.
+
+=======================
+ WHAT IS THE PROBLEM
+=======================
+
+The filter is a blocklist. It removes or rejects the traversal sequence ../, but it does not stop the filename from being an absolute path.
+If the server joins the filename to the image folder in a way that keeps the absolute path, the request can read any file the web server can access.
+
+===========================
+THREE THINGS TO UNDERSTAND
+===========================
+
+Traversal sequence (../): This moves up one folder. The filter blocks it, so it cannot be used here.
+Absolute path: A path that starts from the root folder, such as /etc/passwd. It does not need ../ to reach a file.
+Blocklist: A filter that rejects known bad input. It only protects against the patterns it knows about, so other ways of writing the same path can get through.
+
+======================================
+THE ATTACK
+======================================
+
+Instead of a relative filename with ../, we send:
+
+/etc/passwd
+
+The server builds a path that roughly looks like:
+
+/var/www/images//etc/passwd
+
+Depending on how the server joins the path, the leading slash can replace the image folder, so the request reads /etc/passwd directly.
+The response contains the contents of /etc/passwd.
+
+============================
+HOW TO SOLVE IT MANUALLY
+============================
+
+Open the lab and load any product image.
+Replace the filename in the image URL with /etc/passwd.
+Load the page. The text of /etc/passwd appears, and the lab is marked as solved.
+
+=========================
+WHAT THIS SCRIPT DOES
+=========================
+
+* It asks for the lab's base URL and builds the target as /image.
+* It prints a message saying it is sending the absolute-path payload.
+* It sends a GET request with filename set to /etc/passwd. The params argument adds it to the URL query string.
+* If the server returns status 200, it prints the response text, which is the contents of /etc/passwd.
+* If the request fails or the status is different, it prints an error instead.
+
+=============================
+WHY THIS HAPPENS
+=============================
+
+The filter checks for the pattern ../ but not for every way a path can leave the intended folder.
+An absolute path bypasses the pattern check, because it never needs to move up a folder.
+
+=============================
+HOW TO PREVENT THIS
+=============================
+
+Do not build file paths from user input. Map each image to an ID or a fixed name on the server.
+If user input must be used, resolve the full path and check that it still starts with the allowed folder.
+Block at the path-check level, not by searching for specific strings, since blocklists are easy to bypass.
+
+Other good practices:
+
+Run the web server with only the file permissions it needs.
+Keep sensitive files outside the paths the application can reach.
+
+=============================
+ KEY POINTS TO REMEMBER
+=============================
+A blocklist that only checks for ../ does not stop absolute paths.
+Check the resolved path, not the raw input.
+Never trust a filename that comes from the user.
