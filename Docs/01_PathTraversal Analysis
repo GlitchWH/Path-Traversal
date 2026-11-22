@@ -1,0 +1,94 @@
+==================================================
+Lab 1: File Path Traversal, Simple Case
+==================================================
+
+=======================
+WHAT THIS LAB IS ABOUT
+=======================
+
+A shopping website shows product images. Each image is loaded through a URL that includes the filename.
+The server takes that filename and reads the file from its image folder without checking where the path actually points.
+We can use ../ to leave that folder and read other files on the server.
+
+Goal: read the contents of /etc/passwd.
+
+==============================
+HOW THE WEBSITE NORMALLY WORKS
+==============================
+
+When a product image loads, the browser requests /image?filename=<name>.
+The server joins the filename to its image folder, /var/www/images/, and returns that file's contents.
+
+=======================
+ WHAT IS THE PROBLEM
+=======================
+
+The filename is used directly in the file path, with no check for path separators or ../ sequences.
+That means the request can point to any file the web server process is allowed to read.
+
+===========================
+THREE THINGS TO UNDERSTAND
+===========================
+
+Directory traversal (../): This moves up one folder. Each ../ removes one level from the current path.
+Starting folder: The images folder is /var/www/images/. Three ../ moves up to the root folder /.
+Root-level file: /etc/passwd is a Linux file that lists user accounts. It is readable by default, so it makes a clear proof that traversal works.
+
+======================================
+THE ATTACK
+======================================
+
+Instead of a normal filename, we send:
+
+../../../etc/passwd
+
+The server builds a path that roughly looks like:
+
+/var/www/images/../../../etc/passwd
+
+The three ../ take us from /var/www/images/ up to /, and then the path continues to /etc/passwd.
+The server reads the file and returns its contents as the response.
+
+============================
+HOW TO SOLVE IT MANUALLY
+============================
+
+Open the lab and load any product image.
+Find the filename in the image URL and replace it with ../../../etc/passwd.
+Load the page. The text of /etc/passwd appears, and the lab is marked as solved.
+
+=========================
+WHAT THIS SCRIPT DOES
+=========================
+
+* It asks for the lab's base URL and builds the target as /image.
+* It sends a GET request with filename set to ../../../etc/passwd. The params argument adds it to the URL query string.
+* If the server returns status 200, it prints the response text, which is the contents of /etc/passwd.
+* If the request fails or the status is different, it prints an error instead.
+
+=============================
+WHY THIS HAPPENS
+=============================
+
+The server trusts the filename it receives and builds the file path by joining it to a fixed folder.
+Because ../ is a normal part of a path, the server follows it out of the image folder and reads any file it can access.
+
+=============================
+HOW TO PREVENT THIS
+=============================
+
+Do not build file paths directly from user input.
+Resolve the full path and check that it still starts with the allowed folder before reading the file.
+Use an allowlist of known image names, or map user input to a file ID the server controls.
+
+Other good practices:
+
+Run the web server with only the file permissions it needs.
+Keep sensitive files out of paths the application can reach.
+
+=============================
+ KEY POINTS TO REMEMBER
+=============================
+A ../ sequence moves up one folder, so user input can escape the intended directory.
+Always check the resolved path, not just the raw input.
+Never trust a filename that comes from the user.
