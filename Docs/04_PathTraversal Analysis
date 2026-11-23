@@ -1,0 +1,91 @@
+==================================================
+Lab 4: File Path Traversal, Traversal Sequences Stripped with Superfluous URL-Decode
+==================================================
+
+=======================
+WHAT THIS LAB IS ABOUT
+=======================
+
+A shopping website loads product images through a URL that includes the filename.
+The server blocks input that contains ../, and then URL-decodes the filename before using it.
+Because the decoding happens after the check, an encoded traversal sequence gets past the filter and becomes a real ../ afterward.
+
+Goal: read the contents of /etc/passwd.
+
+==============================
+HOW THE WEBSITE NORMALLY WORKS
+==============================
+
+When a product image loads, the browser requests /image?filename=<name>.
+The server reads the file from its image folder, /var/www/images/, and returns it.
+
+=======================
+ WHAT IS THE PROBLEM
+=======================
+
+The server checks the filename for ../ before decoding it, then decodes it and uses the result.
+The check sees only the encoded text, so it finds nothing to block. The decoding step then turns the encoded characters into a working traversal sequence.
+
+===========================
+THREE THINGS TO UNDERSTAND
+===========================
+
+URL encoding: A way to write special characters in a URL. / becomes %2f, and % itself becomes %25.
+Double encoding: Encoding a value that is already encoded. ../ becomes %2e%2e%2f, and encoding the % again gives %252f.
+Superfluous decode: An extra decoding step the server performs. Each decode removes one layer of encoding, so the server reveals the traversal sequence only after the filter has already run.
+
+======================================
+THE ATTACK
+======================================
+
+Instead of a plain traversal sequence, we send:
+
+..%252f..%252f..%252fetc/passwd
+
+The server's filter sees ..%252f, which contains no literal ../, so it lets the value through.
+The server then decodes it once, turning %252f into %2f. The value is now ..%2f..%2f..%2fetc/passwd.
+The server decodes it again, turning %2f into /. The value is now ../../../etc/passwd, which reads the file.
+
+============================
+HOW TO SOLVE IT MANUALLY
+============================
+
+Open the lab and load any product image.
+Replace the filename in the image URL with ..%252f..%252f..%252fetc/passwd.
+Load the page. The text of /etc/passwd appears, and the lab is marked as solved.
+
+=========================
+WHAT THIS SCRIPT DOES
+=========================
+
+* It asks for the lab's base URL and builds the full URL with the double-encoded payload already in it.
+* It sends a GET request to that URL. The payload is not passed through params, so requests does not encode the % signs again.
+* If the server returns status 200, it prints the response text, which is the contents of /etc/passwd.
+* If the request fails or the status is different, it prints an error instead.
+
+=============================
+WHY THIS HAPPENS
+=============================
+
+The filter and the file lookup see the filename at different stages of decoding.
+The check runs before the decode, so it never sees the traversal sequence that the lookup eventually uses.
+
+=============================
+HOW TO PREVENT THIS
+=============================
+
+Do not build file paths from user input. Map each image to an ID or a fixed name on the server.
+If user input must be used, decode it fully first, then run the check on the decoded value, and resolve the final path before reading it.
+Reject input that still contains encoded characters after decoding, instead of decoding it again.
+
+Other good practices:
+
+Run the web server with only the file permissions it needs.
+Keep sensitive files outside the paths the application can reach.
+
+=============================
+ KEY POINTS TO REMEMBER
+=============================
+A check that runs before decoding can miss a traversal sequence that appears after decoding.
+Validate the value that will actually be used, not an earlier form of it.
+Never trust a filename that comes from the user.
