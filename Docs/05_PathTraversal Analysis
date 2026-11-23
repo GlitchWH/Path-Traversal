@@ -1,0 +1,90 @@
+==================================================
+Lab 5: File Path Traversal, Validation of Start of Path
+==================================================
+
+=======================
+WHAT THIS LAB IS ABOUT
+=======================
+
+A shopping website loads product images from a URL that carries the full file path.
+The server checks that the path starts with the expected image folder, /var/www/images/, but it does not check what comes after that.
+Because the check only looks at the beginning of the path, we can start with the allowed folder and then add ../ to leave it.
+
+Goal: read the contents of /etc/passwd.
+
+==============================
+HOW THE WEBSITE NORMALLY WORKS
+==============================
+
+When a product image loads, the browser requests /image?filename=<full path>.
+The server confirms the path begins with /var/www/images/, then reads and returns the file.
+
+=======================
+ WHAT IS THE PROBLEM
+=======================
+
+The validation checks the prefix of the path, not its final location.
+A path can start with the allowed folder and still point somewhere else once ../ sequences are resolved.
+
+===========================
+THREE THINGS TO UNDERSTAND
+===========================
+
+Path prefix: The beginning of a path, such as /var/www/images/. A prefix check only confirms this part.
+Traversal sequence (../): Moves up one folder. Each one is resolved after the prefix has already been checked.
+Path resolution: The server converts the full path into the final file it points to, which is where the traversal takes effect.
+
+======================================
+THE ATTACK
+======================================
+
+Instead of a plain filename, we send:
+
+/var/www/images/../../../etc/passwd
+
+The server checks the start of the value, sees /var/www/images/, and allows it.
+The three ../ then move up from /var/www/images/ to /, so the path resolves to /etc/passwd, which the server reads and returns.
+
+============================
+HOW TO SOLVE IT MANUALLY
+============================
+
+Open the lab and load any product image.
+Replace the filename in the image URL with /var/www/images/../../../etc/passwd.
+Load the page. The text of /etc/passwd appears, and the lab is marked as solved.
+
+=========================
+WHAT THIS SCRIPT DOES
+=========================
+
+* It asks for the lab's base URL and builds the target as /image.
+* It sends a GET request with filename set to /var/www/images/../../../etc/passwd. The params argument adds it to the URL query string.
+* If the server returns status 200, it prints the response text, which is the contents of /etc/passwd.
+* If the request fails or the status is different, it prints an error instead.
+
+=============================
+WHY THIS HAPPENS
+=============================
+
+The server trusts that a path beginning with the allowed folder must stay inside it.
+That assumption is wrong, because ../ can leave the folder after the prefix check has passed.
+
+=============================
+HOW TO PREVENT THIS
+=============================
+
+Do not build file paths from user input. Map each image to an ID or a fixed name on the server.
+If user input must be used, resolve the full path first, then check that the resolved path still starts with the allowed folder.
+Reject any input that contains ../ or that resolves outside the image folder.
+
+Other good practices:
+
+Run the web server with only the file permissions it needs.
+Keep sensitive files outside the paths the application can reach.
+
+=============================
+ KEY POINTS TO REMEMBER
+=============================
+Checking only the start of a path does not confine it to that folder.
+Validate the final resolved path, not the raw string.
+Never trust a filename that comes from the user.
