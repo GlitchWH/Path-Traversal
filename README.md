@@ -14,12 +14,12 @@ Each lab in this repository has its own dedicated folder containing:
 
 | # | Lab | Technique / Bypass | Status |
 |---|-----|--------------------|--------|
-| 1 | File path traversal, simple case | Basic `../` sequence |  |
-| 2 | File path traversal, traversal sequences blocked with absolute path bypass | Absolute file path (`/etc/passwd`) | |
-| 3 | File path traversal, traversal sequences stripped non-recursively | Nested traversal sequences (`....//`) |  |
-| 4 | File path traversal, traversal sequences stripped with superfluous URL-decode | Double URL encoding (`%252e%252e%252f`) |  |
-| 5 | File path traversal, validation of start of path | Retaining expected base folder (`/var/www/images/../../../etc/passwd`) | |
-| 6 | File path traversal, validation of file extension with null byte bypass | Null byte injection (`%00.png`) |  |
+| 1 | File path traversal, simple case | Basic `../` sequence | ✅ Solved |
+| 2 | File path traversal, traversal sequences blocked with absolute path bypass | Absolute file path (`/etc/passwd`) |✅ Solved |
+| 3 | File path traversal, traversal sequences stripped non-recursively | Nested traversal sequences (`....//`) | ✅ Solved |
+| 4 | File path traversal, traversal sequences stripped with superfluous URL-decode | Double URL encoding (`%252e%252e%252f`) | ✅ Solved |
+| 5 | File path traversal, validation of start of path | Retaining expected base folder (`/var/www/images/../../../etc/passwd`) | ✅ Solved|
+| 6 | File path traversal, validation of file extension with null byte bypass | Null byte injection (`%00.png`) | ✅ Solved |
 
 ## Key Takeaways & Prevention
 
