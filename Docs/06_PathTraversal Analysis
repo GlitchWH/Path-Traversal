@@ -1,0 +1,92 @@
+==================================================
+Lab 6: File Path Traversal, Validation of File Extension with Null Byte Bypass
+==================================================
+
+=======================
+WHAT THIS LAB IS ABOUT
+=======================
+
+A shopping website loads product images through a URL that includes the filename.
+The server checks that the filename ends with an image extension, such as .png, before it reads the file.
+A null byte placed before the extension makes the file system stop reading the name early, so the check passes but the wrong file is opened.
+
+Goal: read the contents of /etc/passwd.
+
+==============================
+HOW THE WEBSITE NORMALLY WORKS
+==============================
+
+When a product image loads, the browser requests /image?filename=<name>.png.
+The server confirms the name ends in .png, then reads the file from /var/www/images/ and returns it.
+
+=======================
+ WHAT IS THE PROBLEM
+=======================
+
+The extension check looks at the whole string, including the .png at the end.
+The file system call that opens the file is written in C, and C treats a null byte as the end of a string.
+So the check and the file open read the same value differently.
+
+===========================
+THREE THINGS TO UNDERSTAND
+===========================
+
+Null byte (%00): A character with the value zero. Encoded in a URL, it appears as %00.
+Extension check: Confirms the name ends in an allowed suffix, such as .png.
+Early termination: When the file system reaches a null byte, it stops reading the name there, so anything after it is ignored.
+
+======================================
+THE ATTACK
+======================================
+
+Instead of a plain filename, we send:
+
+../../../etc/passwd%00.png
+
+The server's check sees a name ending in .png, so it allows the request.
+When the file is opened, the null byte ends the name at ../../../etc/passwd, and the .png is ignored.
+The three ../ move up to /, and the server reads /etc/passwd.
+
+============================
+HOW TO SOLVE IT MANUALLY
+============================
+
+Open the lab and load any product image.
+Replace the filename in the image URL with ../../../etc/passwd%00.png.
+Load the page. The text of /etc/passwd appears, and the lab is marked as solved.
+
+=========================
+WHAT THIS SCRIPT DOES
+=========================
+
+* It asks for the lab's base URL and builds the full URL with %00.png already in it.
+* It sends a GET request to that URL. The payload is not passed through params, so %00 is not encoded a second time.
+* If the server returns status 200, it prints the response text, which is the contents of /etc/passwd.
+* If the request fails or the status is different, it prints an error instead.
+
+=============================
+WHY THIS HAPPENS
+=============================
+
+The extension check and the file open treat the same string differently.
+The check reads the whole value, while the file system stops at the null byte, so the file it opens is not the one the check approved.
+
+=============================
+HOW TO PREVENT THIS
+=============================
+
+Do not build file paths from user input. Map each image to an ID or a fixed name on the server.
+Reject any input that contains a null byte before doing any other check.
+Resolve the final path and confirm it is inside the image folder, using the same value that will be opened.
+
+Other good practices:
+
+Run the web server with only the file permissions it needs.
+Keep sensitive files outside the paths the application can reach.
+
+=============================
+ KEY POINTS TO REMEMBER
+=============================
+A check and a file open can disagree about where a string ends when a null byte is present.
+Validate the exact value that will be used to open the file.
+Never trust a filename that comes from the user.
